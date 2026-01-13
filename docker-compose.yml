@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Backend - OMR Service (Python FastAPI)
+  omr-backend:
+    build:
+      context: ./omr-service
+      dockerfile: Dockerfile
+    container_name: exam-corrector-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - OMR_DEBUG_DIR=/tmp/omr_debug
+      - OMR_MAX_FILE_SIZE_MB=5
+      - OMR_MIN_CONFIDENCE=0.3
+    networks:
+      - exam-corrector-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend - React + Vite
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: exam-corrector-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_OMR_SERVICE_URL=http://localhost:8000
+    networks:
+      - exam-corrector-network
+    depends_on:
+      - omr-backend
+
+networks:
+  exam-corrector-network:
+    driver: bridge
